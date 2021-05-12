@@ -8,8 +8,10 @@ import 'logger.dart';
 
 class FrameRate {
   FrameRate({required this.ideal, required this.max});
+
   int ideal;
   int max;
+
   Map<String, dynamic> toMap() => {
         'ideal': ideal,
         'max': max,
@@ -33,6 +35,7 @@ class MediaTrackConstraints {
 
 class VideoConstraints {
   VideoConstraints({required this.constraints, required this.encodings});
+
   final MediaTrackConstraints constraints;
   final RTCRtpEncoding encodings;
 }
@@ -72,6 +75,7 @@ class Encoding {
 
 class Constraints {
   Constraints({this.resolution, this.deviceId, this.codec, this.audio, this.video, this.simulcast});
+
   String? resolution;
   String? codec;
   bool? simulcast;
@@ -84,6 +88,7 @@ class Constraints {
 
 class LocalStream {
   LocalStream(this._stream, this._constraints);
+
   final Constraints _constraints;
   RTCPeerConnection? _pc;
   final MediaStream _stream;
@@ -235,12 +240,12 @@ class LocalStream {
     // If published, replace published track with track from new device
     if (prev != null && prev.enabled) {
       await _stream.removeTrack(prev);
-      await prev.dispose();
+      await prev.stop();
       if (_pc != null) {
-        await _pc!.getSenders().then((senders) => senders.forEach((RTCRtpSender sender) {
+        await _pc!.getSenders().then((senders) => senders.forEach((RTCRtpSender sender) async {
               if (sender.track?.kind == next.kind) {
-                sender.track?.dispose();
-                sender.replaceTrack(next);
+                await sender.track?.stop();
+                await sender.replaceTrack(next);
               }
             }));
       }
@@ -284,9 +289,7 @@ class LocalStream {
   // 'audio' | 'video'
   Future<void> mute(String kind) async {
     var track = getTrack(kind);
-    if (track != null) {
-      await track.dispose();
-    }
+    await track?.stop();
   }
 
   /// 'audio' | 'video'
@@ -303,6 +306,7 @@ class RemoteStream {
   late bool audio;
   late Layer video;
   late Layer _videoPreMute;
+
   String get id => stream.id;
 
   Function(Layer layer)? preferLayer;
@@ -311,6 +315,7 @@ class RemoteStream {
 }
 
 final jsonEncoder = JsonEncoder();
+
 RemoteStream makeRemote(MediaStream stream, Transport transport) {
   var remote = RemoteStream();
   remote.stream = stream;

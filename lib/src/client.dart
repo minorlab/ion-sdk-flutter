@@ -22,18 +22,14 @@ class RTCConfiguration {
 class Transport {
   Transport(this.signal);
 
-  static Future<Transport> create(
-      {required int role,
-      required Signal signal,
-      required Map<String, dynamic> config}) async {
+  static Future<Transport> create({required int role, required Signal signal, required Map<String, dynamic> config}) async {
     var transport = Transport(signal);
     var pc = await createPeerConnection(config);
 
     transport.pc = pc;
 
     if (role == RolePub) {
-      transport.api = await pc.createDataChannel(
-          'ion-sfu', RTCDataChannelInit()..maxRetransmits = 30);
+      transport.api = await pc.createDataChannel('ion-sfu', RTCDataChannelInit()..maxRetransmits = 30);
     }
 
     pc.onDataChannel = (channel) {
@@ -60,18 +56,14 @@ class Transport {
 
 class Client {
   Client(this.signal, this.config);
+
   static Future<Client> create(
-      {required String sid,
-      required String uid,
-      required Signal signal,
-      Map<String, dynamic>? config, Function(bool result)? onJoin}) async {
+      {required String sid, required String uid, required Signal signal, Map<String, dynamic>? config, Function(bool result)? onJoin}) async {
     var client = Client(signal, config ?? defaultConfig);
 
     client.transports = {
-      RolePub: await Transport.create(
-          role: RolePub, signal: signal, config: config ?? defaultConfig),
-      RoleSub: await Transport.create(
-          role: RoleSub, signal: signal, config: config ?? defaultConfig)
+      RolePub: await Transport.create(role: RolePub, signal: signal, config: config ?? defaultConfig),
+      RoleSub: await Transport.create(role: RoleSub, signal: signal, config: config ?? defaultConfig)
     };
 
     client.signal.onready = () async {
@@ -111,15 +103,26 @@ class Client {
 
   Future<void> publish(LocalStream stream) async {
     await stream.publish(transports[RolePub]!.pc!);
-    await onnegotiationneeded();
+    // await onnegotiationneeded();
   }
 
-  void close() {
-    transports.forEach((key, element) {
-      element.pc!.close();
-      element.pc!.dispose();
-    });
+  Future close() async {
+    await Future.wait(transports.values.map((e) => e.pc!.close()));
+    // for (var element in transports.values) {
+    //   await element.pc!.close();
+    //   await element.pc!.dispose();
+    // }
+    transports.clear();
+    // transports.forEach((key, element) {
+    //   element.pc!.close();
+    //   element.pc!.dispose();
+    // });
     signal.close();
+  }
+
+  Future leave() async {
+    await Future.wait(transports.values.map((e) => e.pc!.close()));
+    transports.clear();
   }
 
   Future<bool> join(String sid, String uid) async {
@@ -200,18 +203,14 @@ class Client {
     var capSel = CodecCapabilitySelector(description.sdp!);
     var acaps = capSel.getCapabilities('audio');
     if (acaps != null) {
-      acaps.codecs = acaps.codecs
-          .where((e) => (e['codec'] as String).toLowerCase() == 'opus')
-          .toList();
+      acaps.codecs = acaps.codecs.where((e) => (e['codec'] as String).toLowerCase() == 'opus').toList();
       acaps.setCodecPreferences('audio', acaps.codecs);
       capSel.setCapabilities(acaps);
     }
 
     var vcaps = capSel.getCapabilities('video');
     if (vcaps != null) {
-      vcaps.codecs = vcaps.codecs
-          .where((e) => (e['codec'] as String).toLowerCase() == 'vp8')
-          .toList();
+      vcaps.codecs = vcaps.codecs.where((e) => (e['codec'] as String).toLowerCase() == 'vp8').toList();
       vcaps.setCodecPreferences('video', vcaps.codecs);
       capSel.setCapabilities(vcaps);
     }
