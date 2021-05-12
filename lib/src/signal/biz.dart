@@ -7,18 +7,19 @@ import 'package:grpc/grpc.dart';
 import '../ion.dart';
 import '_proto/library/biz.pbgrpc.dart' as grpc;
 import '_proto/library/ion.pb.dart' as ion;
-import 'grpc-web/_channel.dart'
-    if (dart.library.html) 'grpc-web/_channel_html.dart';
+import 'grpc-web/_channel.dart' if (dart.library.html) 'grpc-web/_channel_html.dart';
 
 class BizClient extends EventEmitter {
   BizClient(this._uri) {
     var uri = Uri.parse(_uri);
-    var channel = createChannel(uri.host, uri.port, uri.scheme == 'https');
-    _client = grpc.BizClient(channel);
+    _channel = createChannel(uri.host, uri.port, uri.scheme == 'https');
+    _client = grpc.BizClient(_channel);
     _requestStream = StreamController<grpc.SignalRequest>();
+
   }
 
   final String _uri;
+  late ClientChannel _channel;
   late grpc.BizClient _client;
   late StreamController<grpc.SignalRequest> _requestStream;
   late ResponseStream<grpc.SignalReply> _replyStream;
@@ -35,24 +36,16 @@ class BizClient extends EventEmitter {
         });
   }
 
-  void close() {
+  Future close() async {
+
+    await _channel.shutdown();
     _requestStream.close();
     _replyStream.cancel();
   }
 
-  Future<bool> join(
-      {required String sid,
-      required String uid,
-      required Map<String, dynamic> info,
-      String? token}) async {
+  Future<bool> join({required String sid, required String uid, required Map<String, dynamic> info, String? token}) async {
     Completer completer = Completer<bool>();
-    var request = grpc.SignalRequest()
-      ..join = grpc.Join(
-          token: token,
-          peer: ion.Peer(
-              sid: sid,
-              uid: uid,
-              info: utf8.encode(_jsonEncoder.convert(info))));
+    var request = grpc.SignalRequest()..join = grpc.Join(token: token, peer: ion.Peer(sid: sid, uid: uid, info: utf8.encode(_jsonEncoder.convert(info))));
     _requestStream.add(request);
     Function(bool, String) handler;
     handler = (success, reason) {
@@ -74,9 +67,7 @@ class BizClient extends EventEmitter {
   }
 
   void sendMessage(String from, String to, Map<String, dynamic> data) async {
-    var request = grpc.SignalRequest()
-      ..msg = ion.Message(
-          from: from, to: to, data: utf8.encode(_jsonEncoder.convert(data)));
+    var request = grpc.SignalRequest()..msg = ion.Message(from: from, to: to, data: utf8.encode(_jsonEncoder.convert(data)));
     _requestStream.add(request);
   }
 

@@ -43,10 +43,18 @@ class Transport {
       }
     };
 
+    pc.onSignalingState = (state) {
+      print('onSignalingState: $role, $state');
+    };
+
+    pc.onConnectionState = (state) {
+      print('onConnectionState: $role, $state');
+    };
+
     return transport;
   }
 
-  bool hasRemoteDescription = false;
+  // bool hasRemoteDescription = false;
   Function()? onapiopen;
   RTCDataChannel? api;
   Signal signal;
@@ -68,7 +76,7 @@ class Client {
 
     client.signal.onready = () async {
       if (!client.initialized) {
-        bool result = await client.join(sid, uid);
+        var result = await client.join(sid, uid);
         onJoin?.call(result);
         client.initialized = true;
       }
@@ -127,6 +135,7 @@ class Client {
 
   Future<bool> join(String sid, String uid) async {
     try {
+      print('join: start');
       transports[RoleSub]!.pc!.onTrack = (RTCTrackEvent ev) {
         var remote = makeRemote(ev.streams[0], transports[RoleSub]!);
         ontrack?.call(ev.track, remote);
@@ -138,9 +147,10 @@ class Client {
         await pc.setLocalDescription(offer);
         var answer = await signal.join(sid, uid, offer);
         await pc.setRemoteDescription(answer);
-        transports[RolePub]!.hasRemoteDescription = true;
+        // transports[RolePub]!.hasRemoteDescription = true;
         transports[RolePub]!.candidates.forEach((c) => pc.addCandidate(c));
         pc.onRenegotiationNeeded = () => onnegotiationneeded();
+        print('join: end');
         return true;
       }
     } catch (e) {
@@ -151,7 +161,7 @@ class Client {
 
   void trickle(Trickle trickle) async {
     var pc = transports[trickle.target]!.pc;
-    if (pc != null && transports[trickle.target]!.hasRemoteDescription) {
+    if (pc != null && (await pc.getRemoteDescription()) != null) {
       await pc.addCandidate(trickle.candidate);
     } else {
       transports[trickle.target]!.candidates.add(trickle.candidate);

@@ -62,7 +62,8 @@ class IonConnector {
     //bind internal events.
     _biz.on('join-reply', (bool success, String reason) async {
       if (success && _sfu == null) {
-        _sfu = await Client.create(sid: _sid,
+        _sfu = await Client.create(
+            sid: _sid,
             uid: _uid,
             signal: _signal,
             config: config,
@@ -73,8 +74,7 @@ class IonConnector {
           onTrack?.call(track, stream);
         };
         // onJoin?.call(success, reason);
-      }
-      else {
+      } else {
         onJoin?.call(success, reason);
       }
     });
@@ -101,19 +101,22 @@ class IonConnector {
   Function(Message msg)? onMessage;
   Function(MediaStreamTrack track, RemoteStream stream)? onTrack;
 
-  void join({required String sid,
-    required String uid,
-    required Map<String, dynamic> info,
-    String token = ''}) {
+  void join({required String sid, required String uid, required Map<String, dynamic> info, String token = ''}) {
     _sid = sid;
     _uid = uid;
     _biz.join(sid: sid, uid: uid, info: info);
   }
 
-  void leave(String uid) => _biz.leave(uid);
+  void leave(String uid) {
+    _biz.leave(uid);
+    _sfu?.leave();
+  }
 
-  void message(String from, String to, Map<String, dynamic> data) =>
-      _biz.sendMessage(from, to, data);
+  void message(String from, String to, Map<String, dynamic> data) => _biz.sendMessage(from, to, data);
 
-  void close() {}
+  void close() {
+    _biz.close();
+
+    _sfu?.close();
+  }
 }
