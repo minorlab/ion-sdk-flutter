@@ -64,7 +64,7 @@ class Client {
       {required String sid,
       required String uid,
       required Signal signal,
-      Map<String, dynamic>? config}) async {
+      Map<String, dynamic>? config, Function(bool result)? onJoin}) async {
     var client = Client(signal, config ?? defaultConfig);
 
     client.transports = {
@@ -76,7 +76,8 @@ class Client {
 
     client.signal.onready = () async {
       if (!client.initialized) {
-        client.join(sid, uid);
+        bool result = await client.join(sid, uid);
+        onJoin?.call(result);
         client.initialized = true;
       }
     };
@@ -121,7 +122,7 @@ class Client {
     signal.close();
   }
 
-  void join(String sid, String uid) async {
+  Future<bool> join(String sid, String uid) async {
     try {
       transports[RoleSub]!.pc!.onTrack = (RTCTrackEvent ev) {
         var remote = makeRemote(ev.streams[0], transports[RoleSub]!);
@@ -137,10 +138,12 @@ class Client {
         transports[RolePub]!.hasRemoteDescription = true;
         transports[RolePub]!.candidates.forEach((c) => pc.addCandidate(c));
         pc.onRenegotiationNeeded = () => onnegotiationneeded();
+        return true;
       }
     } catch (e) {
       print('join: e => ${e.toString()}');
     }
+    return false;
   }
 
   void trickle(Trickle trickle) async {
