@@ -17,8 +17,7 @@ class FrameRate {
 }
 
 class MediaTrackConstraints {
-  MediaTrackConstraints(
-      {required this.frameRate, required this.height, required this.width});
+  MediaTrackConstraints({required this.frameRate, required this.height, required this.width});
 
   /// Properties of video tracks
   FrameRate frameRate;
@@ -42,39 +41,28 @@ var resolutions = ['qvga', 'vga', 'shd', 'hd', 'fhd', 'qhd'];
 
 var videoConstraints = <String, VideoConstraints>{
   'qvga': VideoConstraints(
-      constraints: MediaTrackConstraints(
-          width: 320, height: 180, frameRate: FrameRate(ideal: 15, max: 30)),
+      constraints: MediaTrackConstraints(width: 320, height: 180, frameRate: FrameRate(ideal: 15, max: 30)),
       encodings: RTCRtpEncoding(maxBitrate: 150000, maxFramerate: 15)),
   'vga': VideoConstraints(
-      constraints: MediaTrackConstraints(
-          width: 640, height: 360, frameRate: FrameRate(ideal: 30, max: 60)),
+      constraints: MediaTrackConstraints(width: 640, height: 360, frameRate: FrameRate(ideal: 30, max: 60)),
       encodings: RTCRtpEncoding(maxBitrate: 500000, maxFramerate: 30)),
   'shd': VideoConstraints(
-      constraints: MediaTrackConstraints(
-          width: 960, height: 540, frameRate: FrameRate(ideal: 30, max: 60)),
+      constraints: MediaTrackConstraints(width: 960, height: 540, frameRate: FrameRate(ideal: 30, max: 60)),
       encodings: RTCRtpEncoding(maxBitrate: 1200000, maxFramerate: 30)),
   'hd': VideoConstraints(
-      constraints: MediaTrackConstraints(
-          width: 1280, height: 720, frameRate: FrameRate(ideal: 30, max: 60)),
+      constraints: MediaTrackConstraints(width: 1280, height: 720, frameRate: FrameRate(ideal: 30, max: 60)),
       encodings: RTCRtpEncoding(maxBitrate: 2500000, maxFramerate: 30)),
   'fhd': VideoConstraints(
-      constraints: MediaTrackConstraints(
-          width: 1920, height: 1080, frameRate: FrameRate(ideal: 30, max: 60)),
+      constraints: MediaTrackConstraints(width: 1920, height: 1080, frameRate: FrameRate(ideal: 30, max: 60)),
       encodings: RTCRtpEncoding(maxBitrate: 4000000, maxFramerate: 30)),
   'qhd': VideoConstraints(
-      constraints: MediaTrackConstraints(
-          width: 2560, height: 1440, frameRate: FrameRate(ideal: 30, max: 60)),
+      constraints: MediaTrackConstraints(width: 2560, height: 1440, frameRate: FrameRate(ideal: 30, max: 60)),
       encodings: RTCRtpEncoding(maxBitrate: 8000000, maxFramerate: 30)),
 };
 
 enum Layer { none, low, medium, high }
 
-Map<Layer, String> layerStringType = {
-  Layer.none: 'none',
-  Layer.low: 'low',
-  Layer.medium: 'medium',
-  Layer.high: 'high'
-};
+Map<Layer, String> layerStringType = {Layer.none: 'none', Layer.low: 'low', Layer.medium: 'medium', Layer.high: 'high'};
 
 class Encoding {
   Layer? layer;
@@ -83,13 +71,7 @@ class Encoding {
 }
 
 class Constraints {
-  Constraints(
-      {this.resolution,
-      this.deviceId,
-      this.codec,
-      this.audio,
-      this.video,
-      this.simulcast});
+  Constraints({this.resolution, this.deviceId, this.codec, this.audio, this.video, this.simulcast});
   String? resolution;
   String? codec;
   bool? simulcast;
@@ -97,12 +79,7 @@ class Constraints {
   bool? video;
   String? deviceId;
 
-  static final defaults = Constraints(
-      resolution: 'hd',
-      codec: 'vp8',
-      audio: true,
-      video: true,
-      simulcast: false);
+  static final defaults = Constraints(resolution: 'hd', codec: 'vp8', audio: true, video: true, simulcast: false);
 }
 
 class LocalStream {
@@ -115,10 +92,8 @@ class LocalStream {
 
   static Future<LocalStream> getUserMedia({Constraints? constraints}) async {
     var stream = await navigator.mediaDevices.getUserMedia({
-      'audio': LocalStream.computeAudioConstraints(
-          constraints ?? Constraints.defaults),
-      'video': LocalStream.computeVideoConstraints(
-          constraints ?? Constraints.defaults)
+      'audio': LocalStream.computeAudioConstraints(constraints ?? Constraints.defaults),
+      'video': LocalStream.computeVideoConstraints(constraints ?? Constraints.defaults)
     });
     return LocalStream(stream, constraints ?? Constraints.defaults);
   }
@@ -174,14 +149,12 @@ class LocalStream {
   /// 'audio' | 'video'
   Future<MediaStreamTrack> getNewTrack(String kind) async {
     var stream = await navigator.mediaDevices.getUserMedia({
-      kind: kind == 'video'
-          ? LocalStream.computeVideoConstraints(_constraints)
-          : LocalStream.computeAudioConstraints(_constraints),
+      kind: kind == 'video' ? LocalStream.computeVideoConstraints(_constraints) : LocalStream.computeAudioConstraints(_constraints),
     });
     return stream.getTracks()[0];
   }
 
-  void publishTrack({required MediaStreamTrack track}) async {
+  Future publishTrack({required MediaStreamTrack track}) async {
     if (_pc != null) {
       if (track.kind == 'video' && _constraints.simulcast!) {
         var idx = resolutions.indexOf(_constraints.resolution!);
@@ -189,12 +162,10 @@ class LocalStream {
           RTCRtpEncoding(
             rid: 'f',
             active: true,
-            maxBitrate:
-                videoConstraints[resolutions[idx]]!.encodings.maxBitrate,
+            maxBitrate: videoConstraints[resolutions[idx]]!.encodings.maxBitrate,
             minBitrate: 256000,
             scaleResolutionDownBy: 1.0,
-            maxFramerate:
-                videoConstraints[resolutions[idx]]!.encodings.maxFramerate,
+            maxFramerate: videoConstraints[resolutions[idx]]!.encodings.maxFramerate,
           )
         ];
 
@@ -203,11 +174,9 @@ class LocalStream {
             rid: 'h',
             active: true,
             scaleResolutionDownBy: 2.0,
-            maxBitrate:
-                videoConstraints[resolutions[idx - 1]]!.encodings.maxBitrate,
+            maxBitrate: videoConstraints[resolutions[idx - 1]]!.encodings.maxBitrate,
             minBitrate: 128000,
-            maxFramerate:
-                videoConstraints[resolutions[idx - 1]]!.encodings.maxFramerate,
+            maxFramerate: videoConstraints[resolutions[idx - 1]]!.encodings.maxFramerate,
           ));
         }
 
@@ -217,10 +186,8 @@ class LocalStream {
             active: true,
             minBitrate: 64000,
             scaleResolutionDownBy: 4.0,
-            maxBitrate:
-                videoConstraints[resolutions[idx - 2]]!.encodings.maxBitrate,
-            maxFramerate:
-                videoConstraints[resolutions[idx - 2]]!.encodings.maxFramerate,
+            maxBitrate: videoConstraints[resolutions[idx - 2]]!.encodings.maxBitrate,
+            maxFramerate: videoConstraints[resolutions[idx - 2]]!.encodings.maxFramerate,
           ));
         }
 
@@ -238,9 +205,7 @@ class LocalStream {
             init: RTCRtpTransceiverInit(
               streams: [_stream],
               direction: TransceiverDirection.SendOnly,
-              sendEncodings: track.kind == 'video'
-                  ? [videoConstraints[_constraints.resolution]!.encodings]
-                  : [],
+              sendEncodings: track.kind == 'video' ? [videoConstraints[_constraints.resolution]!.encodings] : [],
             ));
         if (track.kind == 'video') {
           setPreferredCodec(transceiver);
@@ -265,47 +230,46 @@ class LocalStream {
     */
   }
 
-  Future<void> updateTrack(
-      {required MediaStreamTrack next, MediaStreamTrack? prev}) async {
+  Future<void> updateTrack({required MediaStreamTrack next, MediaStreamTrack? prev}) async {
     await _stream.addTrack(next);
     // If published, replace published track with track from new device
     if (prev != null && prev.enabled) {
       await _stream.removeTrack(prev);
       await prev.dispose();
       if (_pc != null) {
-        await _pc!
-            .getSenders()
-            .then((senders) => senders.forEach((RTCRtpSender sender) {
-                  if (sender.track?.kind == next.kind) {
-                    sender.track?.dispose();
-                    sender.replaceTrack(next);
-                  }
-                }));
+        await _pc!.getSenders().then((senders) => senders.forEach((RTCRtpSender sender) {
+              if (sender.track?.kind == next.kind) {
+                sender.track?.dispose();
+                sender.replaceTrack(next);
+              }
+            }));
       }
     } else {
       await _stream.addTrack(next);
 
       if (_pc != null) {
-        publishTrack(track: next);
+        await publishTrack(track: next);
       }
     }
   }
 
   Future<void> publish(RTCPeerConnection pc) async {
     _pc = pc;
-    _stream.getTracks().forEach((track) async => publishTrack(track: track));
+    // _stream.getTracks().forEach((track) async => publishTrack(track: track));
+    await Future.wait(_stream.getTracks().map((track) => publishTrack(track: track)));
   }
 
   Future<void> unpublish() async {
     if (_pc != null) {
-      var tracks = _stream.getTracks();
-      await _pc!
-          .getSenders()
-          .then((senders) => senders.forEach((RTCRtpSender s) async {
-                if (tracks.contains((e) => s.track?.id == e.id)) {
-                  await _pc?.removeTrack(s);
-                }
-              }));
+      final tracks = _stream.getTracks();
+      final senders = await _pc!.getSenders();
+      await Future.wait(senders.where((s) => tracks.contains((e) => s.track?.id == e.id)).map((s) => _pc!.removeTrack(s)));
+
+      // await _pc!.getSenders().then((senders) => senders.forEach((RTCRtpSender s) async {
+      //       if (tracks.contains((e) => s.track?.id == e.id)) {
+      //         await _pc?.removeTrack(s);
+      //       }
+      //     }));
     }
   }
 
