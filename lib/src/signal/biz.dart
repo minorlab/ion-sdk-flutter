@@ -12,10 +12,9 @@ import 'grpc-web/_channel.dart' if (dart.library.html) 'grpc-web/_channel_html.d
 class BizClient extends EventEmitter {
   BizClient(this._uri, {bool? secure}) {
     var uri = Uri.parse(_uri);
-    _channel = createChannel(uri.host, uri.port, secure?? uri.scheme == 'https');
+    _channel = createChannel(uri.host, uri.port, secure ?? uri.scheme == 'https');
     _client = grpc.BizClient(_channel);
     _requestStream = StreamController<grpc.SignalRequest>();
-
   }
 
   final String _uri;
@@ -37,10 +36,9 @@ class BizClient extends EventEmitter {
   }
 
   Future close() async {
-
     await _channel.shutdown();
-    _requestStream.close();
-    _replyStream.cancel();
+    await _requestStream.close();
+    await _replyStream.cancel();
   }
 
   Future<bool> join({required String sid, required String uid, required Map<String, dynamic> info, String? token}) async {
