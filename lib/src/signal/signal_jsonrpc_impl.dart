@@ -10,8 +10,8 @@ import 'json-rpc/websocket.dart' if (dart.library.js) 'json-rpc/websocket_web.da
 import 'signal.dart';
 
 class JsonRPCSignal extends Signal {
-  JsonRPCSignal(this._uri, this.key) {
-    _socket = SimpleWebSocket(_uri, key: key);
+  JsonRPCSignal(this._uri) {
+    _socket = SimpleWebSocket(_uri);
 
     _socket.onOpen = () => onready?.call();
 
@@ -21,7 +21,6 @@ class JsonRPCSignal extends Signal {
   }
 
   final String _uri;
-  final String? key;
   final JsonDecoder _jsonDecoder = JsonDecoder();
   final JsonEncoder _jsonEncoder = JsonEncoder();
   final Uuid _uuid = Uuid();
