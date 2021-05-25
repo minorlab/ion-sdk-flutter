@@ -6,13 +6,12 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:uuid/uuid.dart';
 
 import '../logger.dart';
-import 'json-rpc/websocket.dart'
-    if (dart.library.js) 'json-rpc/websocket_web.dart';
+import 'json-rpc/websocket.dart' if (dart.library.js) 'json-rpc/websocket_web.dart';
 import 'signal.dart';
 
 class JsonRPCSignal extends Signal {
-  JsonRPCSignal(this._uri) {
-    _socket = SimpleWebSocket(_uri);
+  JsonRPCSignal(this._uri, this.key) {
+    _socket = SimpleWebSocket(_uri, key: key);
 
     _socket.onOpen = () => onready?.call();
 
@@ -22,6 +21,7 @@ class JsonRPCSignal extends Signal {
   }
 
   final String _uri;
+  final String? key;
   final JsonDecoder _jsonDecoder = JsonDecoder();
   final JsonEncoder _jsonEncoder = JsonEncoder();
   final Uuid _uuid = Uuid();
@@ -34,8 +34,7 @@ class JsonRPCSignal extends Signal {
       var resp = _jsonDecoder.convert(msg);
       if (resp['method'] != null || resp['result'] != null) {
         if (resp['method'] == 'offer') {
-          onnegotiate?.call(RTCSessionDescription(
-              resp['params']['sdp'], resp['params']['type']));
+          onnegotiate?.call(RTCSessionDescription(resp['params']['sdp'], resp['params']['type']));
         } else if (resp['method'] == 'trickle') {
           ontrickle?.call(Trickle.fromMap(resp['params']));
         } else {
@@ -62,8 +61,7 @@ class JsonRPCSignal extends Signal {
   }
 
   @override
-  Future<RTCSessionDescription> join(
-      String sid, String uid, RTCSessionDescription offer) {
+  Future<RTCSessionDescription> join(String sid, String uid, RTCSessionDescription offer) {
     Completer completer = Completer<RTCSessionDescription>();
     var id = _uuid.v4();
     _socket.send(_jsonEncoder.convert(<String, dynamic>{
@@ -75,8 +73,7 @@ class JsonRPCSignal extends Signal {
     Function(dynamic) handler;
     handler = (resp) {
       if (resp['id'] == id) {
-        completer.complete(RTCSessionDescription(
-            resp['result']['sdp'], resp['result']['type']));
+        completer.complete(RTCSessionDescription(resp['result']['sdp'], resp['result']['type']));
       }
     };
     _emitter.once('message', handler);
@@ -96,8 +93,7 @@ class JsonRPCSignal extends Signal {
     Function(dynamic) handler;
     handler = (resp) {
       if (resp['id'] == id) {
-        completer.complete(RTCSessionDescription(
-            resp['result']['sdp'], resp['result']['type']));
+        completer.complete(RTCSessionDescription(resp['result']['sdp'], resp['result']['type']));
       }
     };
     _emitter.once('message', handler);

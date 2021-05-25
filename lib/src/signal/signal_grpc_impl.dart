@@ -7,14 +7,13 @@ import 'package:grpc/grpc.dart';
 import 'package:uuid/uuid.dart';
 
 import '_proto/library/sfu.pbgrpc.dart' as grpc;
-import 'grpc-web/_channel.dart'
-    if (dart.library.html) 'grpc-web/_channel_html.dart';
+import 'grpc-web/_channel.dart' if (dart.library.html) 'grpc-web/_channel_html.dart';
 import 'signal.dart';
 
 class GRPCWebSignal extends Signal {
-  GRPCWebSignal(this._uri, {bool? secure}) {
+  GRPCWebSignal(this._uri, dynamic credentials) {
     var uri = Uri.parse(_uri);
-    var channel = createChannel(uri.host, uri.port, secure??uri.scheme == 'https');
+    var channel = createChannel(uri.host, uri.port, uri.scheme == 'https', credentials);
     _client = grpc.SFUClient(channel);
     _requestStream = StreamController<grpc.SignalRequest>();
   }
@@ -31,8 +30,7 @@ class GRPCWebSignal extends Signal {
   void _onSignalReply(grpc.SignalReply reply) {
     switch (reply.whichPayload()) {
       case grpc.SignalReply_Payload.join:
-        var map =
-            _jsonDecoder.convert(String.fromCharCodes(reply.join.description));
+        var map = _jsonDecoder.convert(String.fromCharCodes(reply.join.description));
         var desc = RTCSessionDescription(map['sdp'], map['type']);
         _emitter.emit('join-reply', desc);
         break;
@@ -46,10 +44,7 @@ class GRPCWebSignal extends Signal {
         }
         break;
       case grpc.SignalReply_Payload.trickle:
-        var map = {
-          'target': reply.trickle.target.value,
-          'candidate': _jsonDecoder.convert(reply.trickle.init)
-        };
+        var map = {'target': reply.trickle.target.value, 'candidate': _jsonDecoder.convert(reply.trickle.init)};
         ontrickle?.call(Trickle.fromMap(map));
         break;
       case grpc.SignalReply_Payload.iceConnectionState:
@@ -62,9 +57,7 @@ class GRPCWebSignal extends Signal {
   @override
   void connect() {
     _replyStream = _client.signal(_requestStream.stream);
-    _replyStream.listen(_onSignalReply,
-        onDone: () => onclose?.call(0, 'closed'),
-        onError: (e) => onclose?.call(500, '$e'));
+    _replyStream.listen(_onSignalReply, onDone: () => onclose?.call(0, 'closed'), onError: (e) => onclose?.call(500, '$e'));
     onready?.call();
   }
 
@@ -75,8 +68,7 @@ class GRPCWebSignal extends Signal {
   }
 
   @override
-  Future<RTCSessionDescription> join(
-      String sid, String uid, RTCSessionDescription offer) {
+  Future<RTCSessionDescription> join(String sid, String uid, RTCSessionDescription offer) {
     Completer completer = Completer<RTCSessionDescription>();
     var id = _uuid.v4();
     var request = grpc.SignalRequest()
@@ -115,8 +107,7 @@ class GRPCWebSignal extends Signal {
 
   @override
   void answer(RTCSessionDescription answer) {
-    var reply = grpc.SignalRequest()
-      ..description = utf8.encode(_jsonEncoder.convert(answer.toMap()));
+    var reply = grpc.SignalRequest()..description = utf8.encode(_jsonEncoder.convert(answer.toMap()));
     _requestStream.add(reply);
   }
 

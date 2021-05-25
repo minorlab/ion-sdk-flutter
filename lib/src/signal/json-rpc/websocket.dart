@@ -7,10 +7,11 @@ import '../../logger.dart';
 import 'common.dart';
 
 class SimpleWebSocket {
-  SimpleWebSocket(this._url);
+  SimpleWebSocket(this._url, {this.key});
 
   final String _url;
   var _socket;
+  String? key;
 
   OnOpenCallback? onOpen;
   OnMessageCallback? onMessage;
@@ -46,25 +47,21 @@ class SimpleWebSocket {
   Future<WebSocket> _connectForSelfSignedCert(url) async {
     try {
       var r = Random();
-      var key = base64.encode(List<int>.generate(8, (_) => r.nextInt(255)));
+      // var key = base64.encode(List<int>.generate(8, (_) => r.nextInt(255)));
       var client = HttpClient(context: SecurityContext());
-      client.badCertificateCallback =
-          (X509Certificate cert, String host, int port) {
-        log.debug(
-            'SimpleWebSocket: Allow self-signed certificate => $host:$port. ');
+      client.badCertificateCallback = (X509Certificate cert, String host, int port) {
+        log.debug('SimpleWebSocket: Allow self-signed certificate => $host:$port:$cert ');
         return true;
       };
 
       var parsed_uri = Uri.parse(url);
-      var uri = parsed_uri.replace(
-          scheme: parsed_uri.scheme == 'wss' ? 'https' : 'http');
+      var uri = parsed_uri.replace(scheme: parsed_uri.scheme == 'wss' ? 'https' : 'http');
 
       var request = await client.getUrl(uri); // form the correct url here
       request.headers.add('Connection', 'Upgrade');
       request.headers.add('Upgrade', 'websocket');
-      request.headers.add(
-          'Sec-WebSocket-Version', '13'); // insert the correct version here
-      request.headers.add('Sec-WebSocket-Key', key.toLowerCase());
+      request.headers.add('Sec-WebSocket-Version', '13'); // insert the correct version here
+      request.headers.add('Sec-WebSocket-Key', key ?? base64.encode(List<int>.generate(8, (_) => r.nextInt(255))).toLowerCase());
 
       var response = await request.close();
       // ignore: close_sinks

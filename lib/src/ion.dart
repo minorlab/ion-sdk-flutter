@@ -56,9 +56,9 @@ class Message {
 }
 
 class IonConnector {
-  IonConnector({required String url, Map<String, dynamic>? config, bool? secure}) {
-    _biz = BizClient(url);
-    _signal = GRPCWebSignal(url, secure: secure);
+  IonConnector({required String url, Map<String, dynamic>? config, dynamic credentails}) {
+    _biz = BizClient(url, credentails);
+    _signal = GRPCWebSignal(url, credentails);
     //bind internal events.
     _biz.on('join-reply', (bool success, String reason) async {
       if (success && _sfu == null) {

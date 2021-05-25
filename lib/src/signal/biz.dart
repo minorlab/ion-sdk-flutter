@@ -10,9 +10,9 @@ import '_proto/library/ion.pb.dart' as ion;
 import 'grpc-web/_channel.dart' if (dart.library.html) 'grpc-web/_channel_html.dart';
 
 class BizClient extends EventEmitter {
-  BizClient(this._uri, {bool? secure}) {
+  BizClient(this._uri, dynamic credentials) {
     var uri = Uri.parse(_uri);
-    _channel = createChannel(uri.host, uri.port, secure ?? uri.scheme == 'https');
+    _channel = createChannel(uri.host, uri.port, uri.scheme == 'https', credentials);
     _client = grpc.BizClient(_channel);
     _requestStream = StreamController<grpc.SignalRequest>();
   }
