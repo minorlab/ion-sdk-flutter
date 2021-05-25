@@ -47,9 +47,9 @@ class SimpleWebSocket {
     try {
       var r = Random();
       var key = base64.encode(List<int>.generate(8, (_) => r.nextInt(255)));
-      var client = HttpClient(context: SecurityContext());
+      var client = HttpClient(context: SecurityContext()..setTrustedCertificates('cert/cert.p12', password: 'minorlab'));
       client.badCertificateCallback = (X509Certificate cert, String host, int port) {
-        log.debug('SimpleWebSocket: Allow self-signed certificate => $host:$port:$cert ');
+        log.debug('SimpleWebSocket: Allow self-signed certificate => $host:$port. ');
         return true;
       };
 
@@ -60,7 +60,7 @@ class SimpleWebSocket {
       request.headers.add('Connection', 'Upgrade');
       request.headers.add('Upgrade', 'websocket');
       request.headers.add('Sec-WebSocket-Version', '13'); // insert the correct version here
-      request.headers.add('Sec-WebSocket-Key',  key.toLowerCase());
+      request.headers.add('Sec-WebSocket-Key', key.toLowerCase());
 
       var response = await request.close();
       // ignore: close_sinks
