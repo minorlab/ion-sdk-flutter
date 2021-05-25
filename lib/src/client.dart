@@ -29,8 +29,7 @@ class Transport {
     transport.pc = pc;
 
     if (role == RolePub) {
-      transport.api = await pc.createDataChannel('ion-sfu', RTCDataChannelInit()
-        ..maxRetransmits = 30);
+      transport.api = await pc.createDataChannel('ion-sfu', RTCDataChannelInit()..maxRetransmits = 30);
     }
 
     pc.onDataChannel = (channel) {
@@ -162,8 +161,13 @@ class Client {
 
   Future trickle(Trickle trickle) async {
     var pc = transports[trickle.target]!.pc;
+    var remote;
+    try {
+      remote = pc != null ? (await pc.getRemoteDescription()) : null;
+    } catch (e) {
+      print(e);
+    }
 
-    final remote =  pc != null ? (await pc.getRemoteDescription()) : null;
     if (remote != null) {
       await pc?.addCandidate(trickle.candidate);
     } else {
