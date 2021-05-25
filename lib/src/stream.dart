@@ -105,47 +105,38 @@ class LocalStream {
 
   static Future<LocalStream> getDisplayMedia({Constraints? constraints}) async {
     var stream = await navigator.mediaDevices.getDisplayMedia({
-      'codec': 'vp8',
-      'resolution': 'hd',
-      'audio': false,
       'video': true,
-      'simulcast': false,
     });
     return LocalStream(stream, Constraints.defaults);
   }
 
   static dynamic computeAudioConstraints(Constraints constraints) {
     if (constraints.audio != null) {
-      return constraints.audio;
+      return true;
+    } else if (constraints.video! && constraints.resolution != null) {
+      return {'deviceId': constraints.deviceId};
     }
-    // else if (constraints.video! && constraints.resolution != null) {
-    //   return {'deviceId': constraints.deviceId};
-    // }
     return false;
   }
 
   static dynamic computeVideoConstraints(Constraints constraints) {
-    if (constraints.video != null) {
-      if (constraints.resolution == null) {
-        return constraints.video;
-      }
-      else {
-        var resolution = videoConstraints[constraints.resolution]!.constraints;
-        var mobileConstraints = WebRTC.platformIsWeb
-            ? {}
-            : {
-          'mandatory': {
-            'minWidth': '1280',
-            'minHeight': '720',
-            'minFrameRate': '30',
-          },
-          'facingMode': 'user',
-          'optional': []
-        };
-        return {...resolution.toMap(), ...mobileConstraints};
-      }
+    if (constraints.video! && constraints.resolution == null) {
+      return true;
+    } else if (constraints.video! && constraints.resolution != null) {
+      var resolution = videoConstraints[constraints.resolution]!.constraints;
+      var mobileConstraints = WebRTC.platformIsWeb
+          ? {}
+          : {
+              'mandatory': {
+                'minWidth': '1280',
+                'minHeight': '720',
+                'minFrameRate': '30',
+              },
+              'facingMode': 'user',
+              'optional': []
+            };
+      return {...resolution.toMap(), ...mobileConstraints};
     }
-
     return false;
   }
 
@@ -170,67 +161,60 @@ class LocalStream {
 
   Future publishTrack({required MediaStreamTrack track}) async {
     if (_pc != null) {
-      try {
-        if (track.kind == 'video' && _constraints.simulcast!) {
-          var idx = resolutions.indexOf(_constraints.resolution!);
-          var encodings = <RTCRtpEncoding>[
-            RTCRtpEncoding(
-              rid: 'f',
-              active: true,
-              maxBitrate: videoConstraints[resolutions[idx]]!.encodings.maxBitrate,
-              minBitrate: 256000,
-              scaleResolutionDownBy: 1.0,
-              maxFramerate: videoConstraints[resolutions[idx]]!.encodings.maxFramerate,
-            )
-          ];
+      if (track.kind == 'video' && _constraints.simulcast!) {
+        var idx = resolutions.indexOf(_constraints.resolution!);
+        var encodings = <RTCRtpEncoding>[
+          RTCRtpEncoding(
+            rid: 'f',
+            active: true,
+            maxBitrate: videoConstraints[resolutions[idx]]!.encodings.maxBitrate,
+            minBitrate: 256000,
+            scaleResolutionDownBy: 1.0,
+            maxFramerate: videoConstraints[resolutions[idx]]!.encodings.maxFramerate,
+          )
+        ];
 
-          if (idx - 1 >= 0) {
-            encodings.add(RTCRtpEncoding(
-              rid: 'h',
-              active: true,
-              scaleResolutionDownBy: 2.0,
-              maxBitrate: videoConstraints[resolutions[idx - 1]]!.encodings.maxBitrate,
-              minBitrate: 128000,
-              maxFramerate: videoConstraints[resolutions[idx - 1]]!.encodings.maxFramerate,
-            ));
-          }
-
-          if (idx - 2 >= 0) {
-            encodings.add(RTCRtpEncoding(
-              rid: 'q',
-              active: true,
-              minBitrate: 64000,
-              scaleResolutionDownBy: 4.0,
-              maxBitrate: videoConstraints[resolutions[idx - 2]]!.encodings.maxBitrate,
-              maxFramerate: videoConstraints[resolutions[idx - 2]]!.encodings.maxFramerate,
-            ));
-          }
-
-          var transceiver = await _pc?.addTransceiver(
-              track: track,
-              kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
-              init: RTCRtpTransceiverInit(
-                streams: [_stream],
-                direction: TransceiverDirection.SendOnly,
-                sendEncodings: encodings,
-              ));
-          setPreferredCodec(transceiver);
-        } else {
-          var transceiver = await _pc?.addTransceiver(
-              track: track,
-              kind:track.kind == 'video' ? RTCRtpMediaType.RTCRtpMediaTypeVideo : RTCRtpMediaType.RTCRtpMediaTypeVideo,
-              init: RTCRtpTransceiverInit(
-                streams: [_stream],
-                direction: TransceiverDirection.SendOnly,
-                sendEncodings: track.kind == 'video' ? [videoConstraints[_constraints.resolution]!.encodings] : null,
-              ));
-          if (track.kind == 'video') {
-            setPreferredCodec(transceiver);
-          }
+        if (idx - 1 >= 0) {
+          encodings.add(RTCRtpEncoding(
+            rid: 'h',
+            active: true,
+            scaleResolutionDownBy: 2.0,
+            maxBitrate: videoConstraints[resolutions[idx - 1]]!.encodings.maxBitrate,
+            minBitrate: 128000,
+            maxFramerate: videoConstraints[resolutions[idx - 1]]!.encodings.maxFramerate,
+          ));
         }
-      }
-      on Exception catch(e) {
-        print(e);
+
+        if (idx - 2 >= 0) {
+          encodings.add(RTCRtpEncoding(
+            rid: 'q',
+            active: true,
+            minBitrate: 64000,
+            scaleResolutionDownBy: 4.0,
+            maxBitrate: videoConstraints[resolutions[idx - 2]]!.encodings.maxBitrate,
+            maxFramerate: videoConstraints[resolutions[idx - 2]]!.encodings.maxFramerate,
+          ));
+        }
+
+        var transceiver = await _pc?.addTransceiver(
+            track: track,
+            init: RTCRtpTransceiverInit(
+              streams: [_stream],
+              direction: TransceiverDirection.SendOnly,
+              sendEncodings: encodings,
+            ));
+        setPreferredCodec(transceiver);
+      } else {
+        var transceiver = await _pc?.addTransceiver(
+            track: track,
+            init: RTCRtpTransceiverInit(
+              streams: [_stream],
+              direction: TransceiverDirection.SendOnly,
+              sendEncodings: track.kind == 'video' ? [videoConstraints[_constraints.resolution]!.encodings] : [],
+            ));
+        if (track.kind == 'video') {
+          setPreferredCodec(transceiver);
+        }
       }
     }
   }
