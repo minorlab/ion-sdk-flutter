@@ -126,7 +126,7 @@ class LocalStream {
 
   static dynamic computeVideoConstraints(Constraints constraints) {
     if (constraints.video != null) {
-      if (constraints.resolution == null) {
+      if (constraints.resolution == null  || constraints.video is bool) {
         return constraints.video;
       }
       else {
